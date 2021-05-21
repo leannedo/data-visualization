@@ -1,0 +1,7 @@
+# OSX
+#
+.DS_Store
+/node_modules
+/.vscode
+/dist
+.idea
