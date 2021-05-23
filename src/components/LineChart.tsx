@@ -14,6 +14,8 @@ const LineChart = ({
 
   const minDataPoint = Math.min(...data);
   const maxDataPoint = Math.max(...data);
+  const minIndex = data.indexOf(minDataPoint);
+  const maxIndex = data.indexOf(maxDataPoint);
   const avgDataPoint = data.reduce((acc, e) => acc + e, 0) / data.length;
 
   const sq = data.map((e) => Math.pow(e - avgDataPoint, 2));
@@ -119,6 +121,29 @@ const LineChart = ({
       .attr("class", "data")
       .attr("d", lineDrawer(data));
 
+    // draw min and max point
+    const minMaxPointG = g.append("g");
+
+    const minPoint = minMaxPointG
+      .append("circle")
+      .attr("r", 3)
+      .attr("fill", "red")
+      .attr("class", "minPoint")
+      .attr(
+        "transform",
+        `translate(${xScale(minIndex)},${yScale(minDataPoint)})`
+      );
+
+    const maxPoint = minMaxPointG
+      .append("circle")
+      .attr("r", 3)
+      .attr("fill", "red")
+      .attr("class", "maxPoint")
+      .attr(
+        "transform",
+        `translate(${xScale(maxIndex)},${yScale(maxDataPoint)})`
+      );
+
     // draw overlay for zoom and tooltip
     const overlay = g
       .append("rect")
@@ -154,9 +179,8 @@ const LineChart = ({
     const focusPoint = focus
       .append("circle")
       .attr("r", 3)
-      .attr("class", "circle");
+      .attr("class", "focusPoint");
 
-    // tooltip hover
     const mousemove = (event) => {
       const currentXScale = newXScale || xScale;
       const currentYScale = newYScale || yScale;
@@ -175,6 +199,18 @@ const LineChart = ({
       focusPoint.attr(
         "transform",
         `translate(${currentXScale(index)},${currentYScale(value)})`
+      );
+
+      minMaxPointG.attr("display", "block");
+
+      minPoint.attr(
+        "transform",
+        `translate(${currentXScale(minIndex)},${currentYScale(minDataPoint)})`
+      );
+
+      maxPoint.attr(
+        "transform",
+        `translate(${currentXScale(maxIndex)},${currentYScale(maxDataPoint)})`
       );
 
       tooltip.attr("display", "block").text(`(${index}, ${value})`);
@@ -203,6 +239,7 @@ const LineChart = ({
       // hide focus and tooltip
       focus.attr("display", "none");
       tooltip.attr("display", "none");
+      minMaxPointG.attr("display", "none");
 
       newXScale = event.transform.rescaleX(xScale);
       newYScale = event.transform.rescaleY(yScale);
