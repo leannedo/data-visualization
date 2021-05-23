@@ -13,15 +13,11 @@ function App() {
         title="Data set I"
         className="containerI"
         data={filteredData1}
-        width={700}
-        height={300}
       />
       <LineChart
         title="Data set II"
         className="containerII"
         data={filteredData2}
-        width={700}
-        height={300}
       />
     </div>
   );

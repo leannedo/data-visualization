@@ -2,43 +2,54 @@ import React, { useEffect, useState } from "react";
 import * as d3 from "d3";
 import "./LineChart.scss";
 
-const LineChart = ({ title, data, width, height, className }) => {
+const LineChart = ({
+  title,
+  data,
+  width = 700,
+  height = 300,
+  className,
+  minTickSpace = 20,
+}) => {
   const [isZoom, setIsZoom] = useState(false);
 
-  const drawChart = () => {
-    // constant definition
-    const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+  const minDataPoint = Math.min(...data);
+  const maxDataPoint = Math.max(...data);
+  const avgDataPoint = data.reduce((acc, e) => acc + e, 0) / data.length;
 
-    const canvas = d3.select("." + className).select(".canvas");
+  const sq = data.map((e) => Math.pow(e - avgDataPoint, 2));
+  const standardDeviation = Math.sqrt(
+    sq.reduce((acc, e) => acc + e, 0) / sq.length
+  );
 
-    if (canvas) {
-      canvas.remove();
-    }
+  const defineScales = () => {
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, data.length - 1])
+      .range([0, width]);
 
-    const xScale = d3.scaleLinear().domain([0, data.length]).range([0, width]);
-
-    const xAxis = d3.axisBottom(xScale).ticks(data.length / 10);
-
-    const yMin = isZoom ? Math.min(...data) - 10 : 0;
-    const yMax = isZoom ? Math.max(...data) + 10 : Math.max(...data) + 30;
+    const yOffset = 20;
+    const yMin = isZoom ? minDataPoint - yOffset : 0;
+    const yMax = maxDataPoint + yOffset;
 
     const yScale = d3.scaleLinear().domain([yMin, yMax]).range([height, 0]);
 
-    const yAxis = d3.axisLeft(yScale).ticks(10);
+    return { xScale, yScale };
+  };
 
-    const line = d3
-      .line()
-      .x((value, i) => xScale(i))
-      .y(yScale);
-    // .curve(d3.curveMonotoneX); // add curve or not
+  const drawChart = () => {
+    const margin = { top: 50, right: 50, bottom: 50, left: 50 };
 
-    // create a canvas
-    const svg = d3
-      .select("." + className)
+    const container = d3.select("." + className);
+
+    container.select("svg").remove();
+    container.select(".tooltip").remove();
+
+    // draw a canvas
+    const svg = container
       .append("svg")
+      .attr("class", "canvas")
       .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .attr("class", "canvas");
+      .attr("height", height + margin.top + margin.bottom);
 
     const g = svg
       .append("g")
@@ -51,57 +62,161 @@ const LineChart = ({ title, data, width, height, className }) => {
       .attr("width", width)
       .attr("height", height);
 
-    // draw the x axis
+    const { xScale, yScale } = defineScales();
+    let newXScale = null;
+    let newYScale = null;
+
+    const xAxis = d3
+      .axisBottom(xScale)
+      .ticks(width / minTickSpace)
+      .tickSize(0);
+    const yAxis = d3
+      .axisLeft(yScale)
+      .ticks(height / minTickSpace)
+      .tickSize(0);
+
+    const lineDrawer = d3
+      .line()
+      .x((value, i) => xScale(i))
+      .y(yScale);
+
+    // draw grid
+    g.append("g")
+      .attr("class", "gridX")
+      .attr("transform", `translate(0,${height})`)
+      .call(
+        d3
+          .axisBottom(xScale)
+          .ticks(width / 100)
+          .tickSize(-height)
+          .tickFormat("")
+      );
+
+    g.append("g")
+      .attr("class", "gridY")
+      .call(
+        d3
+          .axisLeft(yScale)
+          .ticks(height / 50)
+          .tickSize(-width)
+          .tickFormat("")
+      );
+
+    // draw axis
     const gX = g
       .append("g")
-      .attr("class", "x-axis") //styling
+      .attr("class", "x-axis")
       .attr("transform", `translate(0,${height})`)
-      // move the line across the height to 0
-      .call(xAxis); // draw the line and tick
+      .call(xAxis);
 
-    // draw the y axis
-    const gY = g
-      .append("g")
-      .attr("class", "y-axis") //styling
-      .call(yAxis);
+    const gY = g.append("g").attr("class", "y-axis").call(yAxis);
 
-    // draw the actual line
-    const gLine = g
+    // draw line
+    const line = g
       .append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
-      .attr("class", "dataA")
-      .attr("d", line(data));
+      .attr("class", "data")
+      .attr("d", lineDrawer(data));
 
-    // Zoom Function
-    const onZoom = (event) => {
-      const new_yScale = event.transform.rescaleY(yScale);
-
-      // update axes
-      gY.call(yAxis.scale(new_yScale));
-
-      // update line
-      gLine.attr("transform", event.transform);
-    };
-
-    const zoom = d3
-      .zoom()
-      .scaleExtent([1, 3])
-      .extent([
-        [0, 0],
-        [width, height],
-      ])
-      .on("zoom", onZoom);
-
-    // append zoom area
-    g.append("rect")
-      .attr("class", "zoom")
-      .attr("width", width)
+    // draw overlay for zoom and tooltip
+    const overlay = g
+      .append("rect")
+      .attr("class", "overlay")
+      .attr("x", -minTickSpace)
+      .attr("width", width + minTickSpace)
       .attr("height", height)
       .style("fill", "none")
-      .style("pointer-events", "all")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-      .call(zoom);
+      .style("pointer-events", "all");
+
+    // draw tooltip
+    const tooltip = g
+      .append("g")
+      .append("text")
+      .attr("class", "tooltip")
+      .attr("display", "none");
+
+    // draw focus line and point
+    const focus = g
+      .append("g")
+      .attr("class", "focus")
+      .attr("clip-path", "url(#clip)")
+      .attr("display", "none");
+
+    const focusLine = focus
+      .append("line")
+      .attr("stroke", "cadetblue")
+      .attr("stroke-width", "2")
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("class", "focusLine");
+
+    const focusPoint = focus
+      .append("circle")
+      .attr("r", 3)
+      .attr("class", "circle");
+
+    // tooltip hover
+    const mousemove = (event) => {
+      const currentXScale = newXScale || xScale;
+      const currentYScale = newYScale || yScale;
+
+      const index = Math.round(xScale.invert(event.clientX - margin.left));
+      const value = data[index];
+
+      if (!value) {
+        return;
+      }
+
+      focus.attr("display", "block");
+
+      focusLine.attr("transform", `translate(${currentXScale(index)},0)`);
+
+      focusPoint.attr(
+        "transform",
+        `translate(${currentXScale(index)},${currentYScale(value)})`
+      );
+
+      tooltip.attr("display", "block").text(`(${index}, ${value})`);
+
+      if (width - event.clientX - margin.left < 80) {
+        tooltip.style(
+          "transform",
+          `translate(${currentXScale(index) - 200}px,${
+            currentYScale(value) - 30
+          }px)`
+        );
+      } else {
+        tooltip.style(
+          "transform",
+          `translate(${currentXScale(index) + 15}px,${
+            currentYScale(value) - 30
+          }px)`
+        );
+      }
+    };
+
+    overlay.on("mousemove", mousemove).on("mouseout");
+
+    // zoom functionality
+    const onZoom = (event) => {
+      // hide focus and tooltip
+      focus.attr("display", "none");
+      tooltip.attr("display", "none");
+
+      newXScale = event.transform.rescaleX(xScale);
+      newYScale = event.transform.rescaleY(yScale);
+
+      gX.call(xAxis.scale(newXScale));
+      gY.call(yAxis.scale(newYScale));
+
+      // update line
+      line.attr("transform", event.transform);
+    };
+
+    const zoom = d3.zoom().scaleExtent([1, 1.2]).on("zoom", onZoom);
+
+    overlay.call(zoom);
   };
 
   useEffect(() => drawChart(), [data, isZoom]);
@@ -111,6 +226,10 @@ const LineChart = ({ title, data, width, height, className }) => {
       <h1>{title}</h1>
       <div className={className} />
       <button onClick={() => setIsZoom(!isZoom)}>Magnify</button>
+      <p>Min data point: {minDataPoint}</p>
+      <p>Max data point: {maxDataPoint}</p>
+      <p>Average data point: {avgDataPoint}</p>
+      <p>Standard deviation: {standardDeviation}</p>
     </>
   );
 };
