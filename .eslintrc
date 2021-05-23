@@ -19,8 +19,7 @@
     "prettier/@typescript-eslint",
     "plugin:prettier/recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:jest-dom/recommended",
-    "plugin:testing-library/recommended"
+    "plugin:jest-dom/recommended"
   ],
   "settings": {
     "import/resolver": {

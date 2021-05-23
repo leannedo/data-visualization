@@ -1,11 +1,29 @@
-// Library
-import React from 'react';
-
-import './App.scss';
+import React from "react";
+import LineChart from "./components/LineChart";
+import response from "./response.json";
+import dataSanitizer from "./dataSanitizer";
 
 function App() {
+  const { filteredData1, filteredData2 } = dataSanitizer(response);
+
   return (
-    <p>Hello</p>
+    <div className="App">
+      <h1>Profile Measurement Visualization App</h1>
+      <LineChart
+        title="Data set I"
+        className="containerI"
+        data={filteredData1}
+        width={700}
+        height={300}
+      />
+      <LineChart
+        title="Data set II"
+        className="containerII"
+        data={filteredData2}
+        width={700}
+        height={300}
+      />
+    </div>
   );
 }
 
