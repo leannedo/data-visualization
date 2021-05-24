@@ -1,5 +1,5 @@
 // Libraries
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import * as d3 from "d3";
 
 // Components
@@ -12,16 +12,20 @@ import "./LineChart.scss";
 // Helpers
 import {
   calcAverage,
-  calcMax,
-  calcMin,
+  findMin,
+  findMax,
   calcStandardDeviation,
-} from "../../helpers/statCalculator";
+} from "../../utils/statsCalculator";
 
 interface LineChartProps {
   title: string;
   data;
-  width?: number;
-  height?: number;
+  dimensions?: {
+    width?: number;
+    height?: number;
+    margin?: { top?: number; right?: number; bottom?: number; left?: number };
+    minTickSpace: number;
+  };
   className: string;
   minTickSpace?: number;
 }
@@ -29,18 +33,25 @@ interface LineChartProps {
 const LineChart = ({
   title,
   data,
-  width = 550,
-  height = 300,
+  dimensions: { width, height, margin, minTickSpace } = {
+    width: 550,
+    height: 300,
+    margin: { top: 30, right: 30, bottom: 20, left: 30 },
+    minTickSpace: 30,
+  },
   className,
-  minTickSpace = 30,
 }: LineChartProps): JSX.Element => {
   const [isMagnified, setIsMagnified] = useState(false);
+  const svgRef = useRef(null);
+
+  const svgWidth = width + margin.left + margin.right;
+  const svgHeight = height + margin.top + margin.bottom;
 
   // compute data for analyzing
-  const { min: minDataPoint, indexOfMin: minDataPointIndex } = calcMin(data);
-  const { max: maxDataPoint, indexOfMax: maxDataPointIndex } = calcMax(data);
+  const { min: minDataPoint, index: minDataPointIndex } = findMin(data);
+  const { max: maxDataPoint, index: maxDataPointIndex } = findMax(data);
   const avgDataPoint = calcAverage(data);
-  const standardDeviation = calcStandardDeviation(data, avgDataPoint);
+  const standardDeviation = calcStandardDeviation(data);
 
   const scalesFnGenerator = () => {
     const xScale = d3
@@ -174,25 +185,12 @@ const LineChart = ({
   };
 
   const drawChart = () => {
-    const margin = { top: 30, right: 50, bottom: 20, left: 50 };
-
-    const container = d3.select(".canvas-container." + className);
-
-    if (!container) {
-      return;
-    }
-
-    container.select("svg").remove();
-    container.select(".tooltip").remove();
-
     // draw a canvas
-    const svg = container
-      .append("svg")
-      .attr("class", "canvas")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom);
+    const canvas = d3.select(svgRef.current);
 
-    const chartG = svg
+    canvas.selectAll("*").remove();
+
+    const chartG = canvas
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -333,7 +331,14 @@ const LineChart = ({
         </div>
       </div>
       <div className="chart-container">
-        <div className={`canvas-container ${className}`} />
+        <div className={`canvas-container ${className}`}>
+          <svg
+            className="canvas"
+            ref={svgRef}
+            width={svgWidth}
+            height={svgHeight}
+          />
+        </div>
         <div className="analysis-text">
           <p>
             <span className="label">Min data point</span>: {minDataPoint}
