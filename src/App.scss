@@ -4,6 +4,8 @@
  * Basic styling for app component
  */
 
+$darkMode: "#toggle-dark-mode-cb:checked + .toggle-dark-mode-wrapper + .app";
+
 * {
   box-sizing: border-box;
 }
@@ -14,5 +16,36 @@ html {
 
 body {
   margin: 0;
-  background-color: cornflowerblue;
+  width: 100%;
+  font-family: 'Maven Pro', sans-serif;
+}
+
+.app {
+  width: 100%;
+  background-color: var(--light-background-color);
+  color: var(--light-text-color);
+  transition: all 0.3s ease-in-out;
+  padding: 0 48px 48px 48px;
+}
+
+#{$darkMode} {
+  background: var(--dark-background-color);
+  color: var(--dark-text-color);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+}
+
+.page-title {
+  color: var(--light-text-color);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+#{$darkMode} .page-title {
+  color: var(--dark-text-color);
 }
