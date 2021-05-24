@@ -1,4 +1,4 @@
-const calcSum = (data) => {
+const calcSum = (data): number => {
   return data.reduce((acc, element) => acc + element, 0);
 };
 
@@ -14,14 +14,14 @@ export const calcStandardDeviation = (data, avgValue: number): number => {
   return Math.sqrt(calcSum(pwOfElementMinusAvg) / pwOfElementMinusAvg.length);
 };
 
-export const calcMin = (data) => {
+export const calcMin = (data): { min: number; indexOfMin: number } => {
   const min = Math.min(...data);
   const indexOfMin = data.indexOf(min);
 
   return { min, indexOfMin };
 };
 
-export const calcMax = (data) => {
+export const calcMax = (data): { max: number; indexOfMax: number } => {
   const max = Math.max(...data);
   const indexOfMax = data.indexOf(max);
 

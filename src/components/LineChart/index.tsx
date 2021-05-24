@@ -17,6 +17,15 @@ import {
   calcStandardDeviation,
 } from "../../helpers/statCalculator";
 
+interface LineChartProps {
+  title: string;
+  data;
+  width?: number;
+  height?: number;
+  className: string;
+  minTickSpace?: number;
+}
+
 const LineChart = ({
   title,
   data,
@@ -24,7 +33,7 @@ const LineChart = ({
   height = 300,
   className,
   minTickSpace = 30,
-}) => {
+}: LineChartProps): JSX.Element => {
   const [isMagnified, setIsMagnified] = useState(false);
 
   // compute data for analyzing
@@ -33,7 +42,7 @@ const LineChart = ({
   const avgDataPoint = calcAverage(data);
   const standardDeviation = calcStandardDeviation(data, avgDataPoint);
 
-  const scalesGenerator = () => {
+  const scalesFnGenerator = () => {
     const xScale = d3
       .scaleLinear()
       .domain([0, data.length - 1])
@@ -53,6 +62,7 @@ const LineChart = ({
       .axisBottom(xScale)
       .ticks(width / minTickSpace)
       .tickSize(0);
+
     const yAxis = d3
       .axisLeft(yScale)
       .ticks(height / minTickSpace)
@@ -188,7 +198,7 @@ const LineChart = ({
 
     drawClipPath(chartG);
 
-    const { xScale, yScale } = scalesGenerator();
+    const { xScale, yScale } = scalesFnGenerator();
     let newXScale = null;
     let newYScale = null;
 
