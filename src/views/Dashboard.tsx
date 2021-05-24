@@ -1,7 +1,7 @@
 import React from "react";
 import LineChart from "../components/LineChart";
 import response from "../response.json";
-import dataSanitizer from "../dataSanitizer";
+import dataSanitizer from "../helpers/dataSanitizer";
 
 const Dashboard = () => {
   const { filteredData1, filteredData2 } = dataSanitizer(response);

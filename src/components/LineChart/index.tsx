@@ -1,8 +1,21 @@
+// Libraries
 import React, { useEffect, useState } from "react";
 import * as d3 from "d3";
+
+// Components
+import Switch from "../Switch";
+import Card from "../Card/";
+
+// Styling
 import "./LineChart.scss";
-import Switch from "./Switch";
-import Card from "./Card";
+
+// Helpers
+import {
+  calcAverage,
+  calcMax,
+  calcMin,
+  calcStandardDeviation,
+} from "../../helpers/statCalculator";
 
 const LineChart = ({
   title,
@@ -14,18 +27,13 @@ const LineChart = ({
 }) => {
   const [isMagnified, setIsMagnified] = useState(false);
 
-  const minDataPoint = Math.min(...data);
-  const maxDataPoint = Math.max(...data);
-  const minIndex = data.indexOf(minDataPoint);
-  const maxIndex = data.indexOf(maxDataPoint);
-  const avgDataPoint = data.reduce((acc, e) => acc + e, 0) / data.length;
+  // compute data for analyzing
+  const { min: minDataPoint, indexOfMin: minDataPointIndex } = calcMin(data);
+  const { max: maxDataPoint, indexOfMax: maxDataPointIndex } = calcMax(data);
+  const avgDataPoint = calcAverage(data);
+  const standardDeviation = calcStandardDeviation(data, avgDataPoint);
 
-  const sq = data.map((e) => Math.pow(e - avgDataPoint, 2));
-  const standardDeviation = Math.sqrt(
-    sq.reduce((acc, e) => acc + e, 0) / sq.length
-  );
-
-  const defineScales = () => {
+  const scalesGenerator = () => {
     const xScale = d3
       .scaleLinear()
       .domain([0, data.length - 1])
@@ -40,8 +48,123 @@ const LineChart = ({
     return { xScale, yScale };
   };
 
+  const axesFnGenerator = (xScale, yScale) => {
+    const xAxis = d3
+      .axisBottom(xScale)
+      .ticks(width / minTickSpace)
+      .tickSize(0);
+    const yAxis = d3
+      .axisLeft(yScale)
+      .ticks(height / minTickSpace)
+      .tickSize(0);
+
+    return { xAxis, yAxis };
+  };
+
+  const drawAxes = (host, xAxis, yAxis) => {
+    const xAxisGroup = host
+      .append("g")
+      .attr("class", "xAxis")
+      .attr("transform", `translate(0,${height})`)
+      .call(xAxis);
+
+    const yAxisGroup = host.append("g").attr("class", "yAxis").call(yAxis);
+
+    return { xAxisGroup, yAxisGroup };
+  };
+
+  const drawClipPath = (host) => {
+    host
+      .append("defs")
+      .append("clipPath")
+      .attr("id", "clip")
+      .append("rect")
+      .attr("width", width)
+      .attr("height", height);
+  };
+
+  const drawGrids = ({ host, xScale, yScale }) => {
+    host
+      .append("g")
+      .attr("class", "gridX")
+      .attr("transform", `translate(0,${height})`)
+      .call(
+        d3
+          .axisBottom(xScale)
+          .ticks(width / 100)
+          .tickSize(-height)
+          .tickFormat("")
+      );
+
+    host
+      .append("g")
+      .attr("class", "gridY")
+      .call(
+        d3
+          .axisLeft(yScale)
+          .ticks(height / 50)
+          .tickSize(-width)
+          .tickFormat("")
+      );
+  };
+
+  const drawOverlay = (host) => {
+    return host
+      .append("rect")
+      .attr("class", "overlay")
+      .attr("x", -minTickSpace)
+      .attr("width", width + minTickSpace)
+      .attr("height", height)
+      .style("fill", "none")
+      .style("pointer-events", "all");
+  };
+
+  const drawMinMaxPoint = (host, xScale, yScale) => {
+    const minMaxPointG = host.append("g");
+    const minPoint = minMaxPointG
+      .append("circle")
+      .attr("r", 4)
+      .attr("class", "minPoint")
+      .attr(
+        "transform",
+        `translate(${xScale(minDataPointIndex)},${yScale(minDataPoint)})`
+      );
+
+    const maxPoint = minMaxPointG
+      .append("circle")
+      .attr("r", 4)
+      .attr("class", "maxPoint")
+      .attr(
+        "transform",
+        `translate(${xScale(maxDataPointIndex)},${yScale(maxDataPoint)})`
+      );
+
+    return { minPoint, maxPoint, minMaxPointG };
+  };
+
+  const drawFocusGroup = (host) => {
+    const focus = host
+      .append("g")
+      .attr("class", "focus")
+      .attr("clip-path", "url(#clip)")
+      .attr("display", "none");
+
+    const focusLine = focus
+      .append("line")
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("class", "focusLine");
+
+    const focusPoint = focus
+      .append("circle")
+      .attr("r", 4)
+      .attr("class", "focusPoint");
+
+    return { focus, focusLine, focusPoint };
+  };
+
   const drawChart = () => {
-    const margin = { top: 30, right: 20, bottom: 20, left: 30 };
+    const margin = { top: 30, right: 50, bottom: 20, left: 50 };
 
     const container = d3.select(".canvas-container." + className);
 
@@ -59,68 +182,30 @@ const LineChart = ({
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom);
 
-    const g = svg
+    const chartG = svg
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    g.append("defs")
-      .append("clipPath")
-      .attr("id", "clip")
-      .append("rect")
-      .attr("width", width)
-      .attr("height", height);
+    drawClipPath(chartG);
 
-    const { xScale, yScale } = defineScales();
+    const { xScale, yScale } = scalesGenerator();
     let newXScale = null;
     let newYScale = null;
 
-    const xAxis = d3
-      .axisBottom(xScale)
-      .ticks(width / minTickSpace)
-      .tickSize(0);
-    const yAxis = d3
-      .axisLeft(yScale)
-      .ticks(height / minTickSpace)
-      .tickSize(0);
+    // draw axis
+    const { xAxis, yAxis } = axesFnGenerator(xScale, yScale);
+    const { xAxisGroup, yAxisGroup } = drawAxes(chartG, xAxis, yAxis);
 
+    // draw grid
+    drawGrids({ host: chartG, xScale, yScale });
+
+    // draw line
     const lineDrawer = d3
       .line()
       .x((value, i) => xScale(i))
       .y(yScale);
 
-    // draw grid
-    g.append("g")
-      .attr("class", "gridX")
-      .attr("transform", `translate(0,${height})`)
-      .call(
-        d3
-          .axisBottom(xScale)
-          .ticks(width / 100)
-          .tickSize(-height)
-          .tickFormat("")
-      );
-
-    g.append("g")
-      .attr("class", "gridY")
-      .call(
-        d3
-          .axisLeft(yScale)
-          .ticks(height / 50)
-          .tickSize(-width)
-          .tickFormat("")
-      );
-
-    // draw axis
-    const gX = g
-      .append("g")
-      .attr("class", "xAxis")
-      .attr("transform", `translate(0,${height})`)
-      .call(xAxis);
-
-    const gY = g.append("g").attr("class", "yAxis").call(yAxis);
-
-    // draw line
-    const line = g
+    const line = chartG
       .append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
@@ -128,62 +213,26 @@ const LineChart = ({
       .attr("d", lineDrawer(data));
 
     // draw min and max point
-    const minMaxPointG = g.append("g");
-
-    const minPoint = minMaxPointG
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "minPoint")
-      .attr(
-        "transform",
-        `translate(${xScale(minIndex)},${yScale(minDataPoint)})`
-      );
-
-    const maxPoint = minMaxPointG
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "maxPoint")
-      .attr(
-        "transform",
-        `translate(${xScale(maxIndex)},${yScale(maxDataPoint)})`
-      );
+    const { minPoint, maxPoint, minMaxPointG } = drawMinMaxPoint(
+      chartG,
+      xScale,
+      yScale
+    );
 
     // draw overlay for zoom and tooltip
-    const overlay = g
-      .append("rect")
-      .attr("class", "overlay")
-      .attr("x", -minTickSpace)
-      .attr("width", width + minTickSpace)
-      .attr("height", height)
-      .style("fill", "none")
-      .style("pointer-events", "all");
+    const overlay = drawOverlay(chartG);
 
     // draw tooltip
-    const tooltip = g
+    const tooltip = chartG
       .append("g")
       .append("text")
       .attr("class", "tooltip")
       .attr("display", "none");
 
     // draw focus line and point
-    const focus = g
-      .append("g")
-      .attr("class", "focus")
-      .attr("clip-path", "url(#clip)")
-      .attr("display", "none");
+    const { focus, focusPoint, focusLine } = drawFocusGroup(chartG);
 
-    const focusLine = focus
-      .append("line")
-      .attr("y1", 0)
-      .attr("y2", height)
-      .attr("class", "focusLine");
-
-    const focusPoint = focus
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "focusPoint");
-
-    const mousemove = (event) => {
+    const onMousemove = (event) => {
       const currentXScale = newXScale || xScale;
       const currentYScale = newYScale || yScale;
 
@@ -195,28 +244,29 @@ const LineChart = ({
       }
 
       focus.attr("display", "block");
-
       focusLine.attr("transform", `translate(${currentXScale(index)},0)`);
-
       focusPoint.attr(
         "transform",
         `translate(${currentXScale(index)},${currentYScale(value)})`
       );
 
       minMaxPointG.attr("display", "block");
-
       minPoint.attr(
         "transform",
-        `translate(${currentXScale(minIndex)},${currentYScale(minDataPoint)})`
+        `translate(${currentXScale(minDataPointIndex)},${currentYScale(
+          minDataPoint
+        )})`
       );
-
       maxPoint.attr(
         "transform",
-        `translate(${currentXScale(maxIndex)},${currentYScale(maxDataPoint)})`
+        `translate(${currentXScale(maxDataPointIndex)},${currentYScale(
+          maxDataPoint
+        )})`
       );
 
       tooltip.attr("display", "block").text(`(${index}, ${value})`);
 
+      // re-position tooltip text to the left when near the end
       if (width - event.clientX - margin.left < 80) {
         tooltip.style(
           "transform",
@@ -234,7 +284,7 @@ const LineChart = ({
       }
     };
 
-    overlay.on("mousemove", mousemove).on("mouseout");
+    overlay.on("mousemove", onMousemove);
 
     // zoom functionality
     const onZoom = (event) => {
@@ -246,8 +296,8 @@ const LineChart = ({
       newXScale = event.transform.rescaleX(xScale);
       newYScale = event.transform.rescaleY(yScale);
 
-      gX.call(xAxis.scale(newXScale));
-      gY.call(yAxis.scale(newYScale));
+      xAxisGroup.call(xAxis.scale(newXScale));
+      yAxisGroup.call(yAxis.scale(newYScale));
 
       // update line
       line.attr("transform", event.transform);
