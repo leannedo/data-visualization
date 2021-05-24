@@ -37,7 +37,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 18px;
+  padding: 18px 0;
 }
 
 .page-title {
@@ -48,4 +48,26 @@ body {
 
 #{$darkMode} .page-title {
   color: var(--dark-text-color);
+}
+
+/* RESPONSIVE STYLING */
+@media screen and (max-width: 768px) {
+  .app {
+    padding: 0 30px 30px 30px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .app {
+    padding: 0 12px 12px 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+    padding-top: 20px;
+  }
 }

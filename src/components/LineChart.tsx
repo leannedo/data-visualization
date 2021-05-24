@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
 import * as d3 from "d3";
 import "./LineChart.scss";
+import Switch from "./Switch";
+import Card from "./Card";
 
 const LineChart = ({
   title,
   data,
-  width = 700,
+  width = 550,
   height = 300,
   className,
-  minTickSpace = 20,
+  minTickSpace = 30,
 }) => {
-  const [isZoom, setIsZoom] = useState(false);
+  const [isMagnified, setIsMagnified] = useState(false);
 
   const minDataPoint = Math.min(...data);
   const maxDataPoint = Math.max(...data);
@@ -30,7 +32,7 @@ const LineChart = ({
       .range([0, width]);
 
     const yOffset = 20;
-    const yMin = isZoom ? minDataPoint - yOffset : 0;
+    const yMin = isMagnified ? minDataPoint - yOffset : 0;
     const yMax = maxDataPoint + yOffset;
 
     const yScale = d3.scaleLinear().domain([yMin, yMax]).range([height, 0]);
@@ -39,9 +41,13 @@ const LineChart = ({
   };
 
   const drawChart = () => {
-    const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+    const margin = { top: 30, right: 20, bottom: 20, left: 30 };
 
-    const container = d3.select("." + className);
+    const container = d3.select(".canvas-container." + className);
+
+    if (!container) {
+      return;
+    }
 
     container.select("svg").remove();
     container.select(".tooltip").remove();
@@ -107,18 +113,18 @@ const LineChart = ({
     // draw axis
     const gX = g
       .append("g")
-      .attr("class", "x-axis")
+      .attr("class", "xAxis")
       .attr("transform", `translate(0,${height})`)
       .call(xAxis);
 
-    const gY = g.append("g").attr("class", "y-axis").call(yAxis);
+    const gY = g.append("g").attr("class", "yAxis").call(yAxis);
 
     // draw line
     const line = g
       .append("g")
       .attr("clip-path", "url(#clip)")
       .append("path")
-      .attr("class", "data")
+      .attr("class", "line")
       .attr("d", lineDrawer(data));
 
     // draw min and max point
@@ -126,8 +132,7 @@ const LineChart = ({
 
     const minPoint = minMaxPointG
       .append("circle")
-      .attr("r", 3)
-      .attr("fill", "red")
+      .attr("r", 4)
       .attr("class", "minPoint")
       .attr(
         "transform",
@@ -136,8 +141,7 @@ const LineChart = ({
 
     const maxPoint = minMaxPointG
       .append("circle")
-      .attr("r", 3)
-      .attr("fill", "red")
+      .attr("r", 4)
       .attr("class", "maxPoint")
       .attr(
         "transform",
@@ -170,15 +174,13 @@ const LineChart = ({
 
     const focusLine = focus
       .append("line")
-      .attr("stroke", "cadetblue")
-      .attr("stroke-width", "2")
       .attr("y1", 0)
       .attr("y2", height)
       .attr("class", "focusLine");
 
     const focusPoint = focus
       .append("circle")
-      .attr("r", 3)
+      .attr("r", 4)
       .attr("class", "focusPoint");
 
     const mousemove = (event) => {
@@ -256,18 +258,39 @@ const LineChart = ({
     overlay.call(zoom);
   };
 
-  useEffect(() => drawChart(), [data, isZoom]);
+  useEffect(() => drawChart(), [data, isMagnified]);
 
   return (
-    <>
-      <h1>{title}</h1>
-      <div className={className} />
-      <button onClick={() => setIsZoom(!isZoom)}>Magnify</button>
-      <p>Min data point: {minDataPoint}</p>
-      <p>Max data point: {maxDataPoint}</p>
-      <p>Average data point: {avgDataPoint}</p>
-      <p>Standard deviation: {standardDeviation}</p>
-    </>
+    <Card>
+      <div className="chart-header">
+        <h2 className="chart-title">{title}</h2>
+        <div className="switch-label-wrapper">
+          <div className="switch-label">Magnify</div>
+          <Switch
+            name={title.split(" ").join("-")}
+            onSwitch={() => setIsMagnified(!isMagnified)}
+          />
+        </div>
+      </div>
+      <div className="chart-container">
+        <div className={`canvas-container ${className}`} />
+        <div className="analysis-text">
+          <p>
+            <span className="label">Min data point</span>: {minDataPoint}
+          </p>
+          <p>
+            <span className="label">Max data point</span>: {maxDataPoint}
+          </p>
+          <p>
+            <span className="label">Average data point</span>: {avgDataPoint}
+          </p>
+          <p>
+            <span className="label">Standard deviation</span>:{" "}
+            {standardDeviation}
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 };
 

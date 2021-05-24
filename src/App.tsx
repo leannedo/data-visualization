@@ -8,7 +8,7 @@ import DarkModeToggle from "./components/DarkModeToggle";
 
 function App() {
   return (
-    <div>
+    <>
       <DarkModeToggle />
       <div className="app">
         <header className="header">
@@ -16,7 +16,7 @@ function App() {
         </header>
         <Dashboard />
       </div>
-    </div>
+    </>
   );
 }
 
