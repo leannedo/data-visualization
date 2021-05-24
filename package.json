@@ -7,7 +7,8 @@
     "build": "webpack --env NODE_ENV=prod --config config/webpack/webpack.config.js",
     "start": "webpack serve --env NODE_ENV=dev --config config/webpack/webpack.config.js",
     "lint": "eslint . --fix --ext .jsx,.js --no-error-on-unmatched-pattern",
-    "test": "echo \"Skipping test\""
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "husky": {
     "hooks": {
@@ -67,6 +68,7 @@
     "eslint-plugin-react-hooks": "^4.2.0",
     "eslint-plugin-testing-library": "^4.5.0",
     "html-webpack-plugin": "^5.1.0",
+    "jest": "^26.6.3",
     "prettier": "^2.2.1",
     "sass-loader": "^11.0.1",
     "style-loader": "^2.0.0",
