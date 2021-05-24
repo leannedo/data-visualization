@@ -1,0 +1,21 @@
+$darkMode: "#toggle-dark-mode-cb:checked + .toggle-dark-mode-wrapper + .app";
+
+.dashboard-card {
+  background: var(--light-card-background-color);
+  border-color: var(--light-card-border-color);
+  padding: 26px;
+  margin: 26px 0;
+  width: 100%;
+}
+
+#{$darkMode} .dashboard-card {
+  background: var(--dark-card-background-color);
+  border-color: var(--dark-card-border-color)
+}
+
+@media screen and (max-width: 480px) {
+  .dashboard-card {
+    margin: 18px 0;
+    padding: 18px;
+  }
+}

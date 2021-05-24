@@ -1,29 +1,22 @@
 import React from "react";
-import LineChart from "./components/LineChart";
-import response from "./response.json";
-import dataSanitizer from "./dataSanitizer";
+
+import "./App.scss";
+import "./styles/variables.scss";
+
+import Dashboard from "./views/Dashboard";
+import DarkModeToggle from "./components/DarkModeToggle";
 
 function App() {
-  const { filteredData1, filteredData2 } = dataSanitizer(response);
-
   return (
-    <div className="App">
-      <h1>Profile Measurement Visualization App</h1>
-      <LineChart
-        title="Data set I"
-        className="containerI"
-        data={filteredData1}
-        width={700}
-        height={300}
-      />
-      <LineChart
-        title="Data set II"
-        className="containerII"
-        data={filteredData2}
-        width={700}
-        height={300}
-      />
-    </div>
+    <>
+      <DarkModeToggle />
+      <div className="app">
+        <header className="header">
+          <h1 className="page-title">Profile Measurement Visualization App</h1>
+        </header>
+        <Dashboard />
+      </div>
+    </>
   );
 }
 

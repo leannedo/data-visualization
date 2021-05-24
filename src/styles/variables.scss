@@ -1,0 +1,35 @@
+:root {
+  /* #COLOR-SCHEME */
+  --primary-color: #3dd58d;
+  --secondary-color: #5252fe;
+  --red-color: #FC3A5C;
+  --orange-color: #F5AE23;
+  --white-color: #fff;
+
+  --light-background-color: #EFF3F9;
+  --light-text-color: #4F4F4F;
+
+  --dark-background-color: #212427;
+  --dark-text-color: #CACACA;
+
+  /* #DASHBOARD CARD */
+  --light-card-background-color: var(--white-color);
+  --light-card-border-color: #EBEBEB;
+
+
+  --dark-card-background-color: #282C31;
+  --dard-card-border-color: #4D4D4D;
+
+
+  /* #CHART */
+  --light-chart-grid-border-color: #EFF3F9;
+  --light-chart-label-color: #979797;
+
+  --dark-chart-grid-border-color: #4D4D4D;
+  --dark-chart-label-color: var(--dark-text-color);
+
+  --chart-line-color: var(--primary-color);
+  --chart-focus-color: var(--secondary-color);
+  --chart-min-point-color: var(--red-color);
+  --chart-max-point-color: var(--orange-color);
+}
