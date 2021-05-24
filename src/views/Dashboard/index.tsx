@@ -1,6 +1,6 @@
 import React from "react";
 import LineChart from "../../components/LineChart";
-import response from "../../response.json";
+import response from "../../data/response.json";
 import { parseAndSanitizeData } from "../../utils/dataSanitizer";
 
 const Dashboard = (): JSX.Element => {

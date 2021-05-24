@@ -3,7 +3,7 @@ import { findMax, findMin } from "../../../utils/statsCalculator";
 export const onMouseMove = ({ event, data, scales, elements, dimensions }) => {
   const { xScale } = scales;
   const { width, margin } = dimensions;
-  const mousePos = event.clientX - margin.left;
+  const mousePos = event.offsetX - margin.left;
 
   const pointIndex = Math.round(xScale.invert(mousePos));
   const pointValue = data[pointIndex];

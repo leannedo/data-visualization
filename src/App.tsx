@@ -12,6 +12,7 @@ function App(): JSX.Element {
       <DarkModeToggle />
       <div className="app">
         <header className="header">
+          <div className="logo" />
           <h1 className="page-title">Profile Measurement Visualization App</h1>
         </header>
         <Dashboard />
