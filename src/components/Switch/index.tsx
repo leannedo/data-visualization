@@ -1,7 +1,12 @@
 import React from "react";
 import "./Switch.scss";
 
-const Switch = ({ name, onSwitch = (f) => f }) => {
+interface SwitchProps {
+  name: string;
+  onSwitch: () => void;
+}
+
+const Switch = ({ name, onSwitch }: SwitchProps): JSX.Element => {
   return (
     <div className="switch-wrapper">
       <input

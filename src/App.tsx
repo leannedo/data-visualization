@@ -6,7 +6,7 @@ import "./styles/variables.scss";
 import Dashboard from "./views/Dashboard";
 import DarkModeToggle from "./components/DarkModeToggle";
 
-function App() {
+function App(): JSX.Element {
   return (
     <>
       <DarkModeToggle />

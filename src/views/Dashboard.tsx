@@ -3,7 +3,7 @@ import LineChart from "../components/LineChart";
 import response from "../response.json";
 import dataSanitizer from "../helpers/dataSanitizer";
 
-const Dashboard = () => {
+const Dashboard = (): JSX.Element => {
   const { filteredData1, filteredData2 } = dataSanitizer(response);
 
   return (
