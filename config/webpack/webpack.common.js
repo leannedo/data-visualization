@@ -51,6 +51,7 @@ module.exports = {
       title: "Profile Measurement",
       template: `${paths.public}/index.html`,
       filename: "index.html",
+      favicon: `${paths.public}/favicon.png`,
     }),
   ],
 };

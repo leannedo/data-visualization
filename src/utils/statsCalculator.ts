@@ -10,7 +10,9 @@ export const calcAverage = (data: number[]): number => {
 export const calcStandardDeviation = (data: number[]): number => {
   const avg = calcAverage(data);
   const pwOfElementMinusAvg = data.map((element) => Math.pow(element - avg, 2));
-  return Math.sqrt(calcSum(pwOfElementMinusAvg) / pwOfElementMinusAvg.length);
+  return Math.sqrt(
+    calcSum(pwOfElementMinusAvg) / (pwOfElementMinusAvg.length - 1)
+  );
 };
 
 export const findMin = (data: number[]): { min: number; index: number } => {

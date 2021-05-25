@@ -5,6 +5,7 @@ import { parseAndSanitizeData } from "../../utils/dataSanitizer";
 
 const Dashboard = (): JSX.Element => {
   const data = parseAndSanitizeData(response);
+  console.log(data);
 
   return (
     <div className="dashboard">

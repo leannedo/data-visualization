@@ -10,7 +10,7 @@ describe("<LineChart/>", () => {
     className: "testContainer",
   };
 
-  test("should render path with proper d attribute", () => {
+  test("it should render path with proper d attribute", () => {
     const { container } = render(
       <LineChart
         title={props.title}
