@@ -109,13 +109,6 @@ const LineChart = ({
       height,
     });
 
-    const overlay = drawOverlay({
-      container: chartGroup,
-      width,
-      height,
-      minTickSpace,
-    });
-
     const { minPoint, maxPoint, minMaxGroup } = drawHighlightPoints({
       container: chartGroup,
       data,
@@ -129,6 +122,13 @@ const LineChart = ({
     );
 
     const tooltip = drawTooltip(chartGroup);
+
+    const overlay = drawOverlay({
+      container: chartGroup,
+      width,
+      height,
+      minTickSpace,
+    });
 
     // Attach mouse events
     overlay.on("mousemove", (event) =>
