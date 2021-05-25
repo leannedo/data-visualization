@@ -1,10 +1,11 @@
 import React from "react";
 import LineChart from "../../components/LineChart";
-import response from "../../response.json";
+import response from "../../data/response.json";
 import { parseAndSanitizeData } from "../../utils/dataSanitizer";
 
 const Dashboard = (): JSX.Element => {
   const data = parseAndSanitizeData(response);
+  console.log(data);
 
   return (
     <div className="dashboard">
@@ -12,8 +13,8 @@ const Dashboard = (): JSX.Element => {
         data.map((dataSet, i) => (
           <LineChart
             key={i}
-            title={`Data set ${i}`}
-            className={`container-${i}`}
+            title={`Data set ${i + 1}`}
+            className={`chart-${i + 1}`}
             data={dataSet}
           />
         ))}

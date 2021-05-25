@@ -5,17 +5,27 @@ import * as d3 from "d3";
 // Components
 import Switch from "../Switch";
 import Card from "../Card/";
+import Stats from "../Stats";
 
 // Styling
 import "./LineChart.scss";
 
-// Helpers
+// Utils
 import {
-  calcAverage,
-  findMin,
-  findMax,
-  calcStandardDeviation,
-} from "../../utils/statsCalculator";
+  getXScale,
+  getYScale,
+  axesFnGenerator,
+  drawAxes,
+  drawClipPath,
+  drawFocusElements,
+  drawGrids,
+  drawOverlay,
+  drawTooltip,
+  drawLine,
+  drawHighlightPoints,
+} from "./utils/draw";
+import { onZoom } from "./utils/zoom";
+import { onMouseMove } from "./utils/mouseEvents";
 
 interface LineChartProps {
   title: string;
@@ -42,281 +52,134 @@ const LineChart = ({
   className,
 }: LineChartProps): JSX.Element => {
   const [isMagnified, setIsMagnified] = useState(false);
+
   const svgRef = useRef(null);
 
   const svgWidth = width + margin.left + margin.right;
   const svgHeight = height + margin.top + margin.bottom;
 
-  // compute data for analyzing
-  const { min: minDataPoint, index: minDataPointIndex } = findMin(data);
-  const { max: maxDataPoint, index: maxDataPointIndex } = findMax(data);
-  const avgDataPoint = calcAverage(data);
-  const standardDeviation = calcStandardDeviation(data);
-
-  const scalesFnGenerator = () => {
-    const xScale = d3
-      .scaleLinear()
-      .domain([0, data.length - 1])
-      .range([0, width]);
-
-    const yOffset = 20;
-    const yMin = isMagnified ? minDataPoint - yOffset : 0;
-    const yMax = maxDataPoint + yOffset;
-
-    const yScale = d3.scaleLinear().domain([yMin, yMax]).range([height, 0]);
-
-    return { xScale, yScale };
-  };
-
-  const axesFnGenerator = (xScale, yScale) => {
-    const xAxis = d3
-      .axisBottom(xScale)
-      .ticks(width / minTickSpace)
-      .tickSize(0);
-
-    const yAxis = d3
-      .axisLeft(yScale)
-      .ticks(height / minTickSpace)
-      .tickSize(0);
-
-    return { xAxis, yAxis };
-  };
-
-  const drawAxes = (host, xAxis, yAxis) => {
-    const xAxisGroup = host
-      .append("g")
-      .attr("class", "xAxis")
-      .attr("transform", `translate(0,${height})`)
-      .call(xAxis);
-
-    const yAxisGroup = host.append("g").attr("class", "yAxis").call(yAxis);
-
-    return { xAxisGroup, yAxisGroup };
-  };
-
-  const drawClipPath = (host) => {
-    host
-      .append("defs")
-      .append("clipPath")
-      .attr("id", "clip")
-      .append("rect")
-      .attr("width", width)
-      .attr("height", height);
-  };
-
-  const drawGrids = ({ host, xScale, yScale }) => {
-    host
-      .append("g")
-      .attr("class", "gridX")
-      .attr("transform", `translate(0,${height})`)
-      .call(
-        d3
-          .axisBottom(xScale)
-          .ticks(width / 100)
-          .tickSize(-height)
-          .tickFormat("")
-      );
-
-    host
-      .append("g")
-      .attr("class", "gridY")
-      .call(
-        d3
-          .axisLeft(yScale)
-          .ticks(height / 50)
-          .tickSize(-width)
-          .tickFormat("")
-      );
-  };
-
-  const drawOverlay = (host) => {
-    return host
-      .append("rect")
-      .attr("class", "overlay")
-      .attr("x", -minTickSpace)
-      .attr("width", width + minTickSpace)
-      .attr("height", height)
-      .style("fill", "none")
-      .style("pointer-events", "all");
-  };
-
-  const drawMinMaxPoint = (host, xScale, yScale) => {
-    const minMaxPointG = host.append("g");
-    const minPoint = minMaxPointG
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "minPoint")
-      .attr(
-        "transform",
-        `translate(${xScale(minDataPointIndex)},${yScale(minDataPoint)})`
-      );
-
-    const maxPoint = minMaxPointG
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "maxPoint")
-      .attr(
-        "transform",
-        `translate(${xScale(maxDataPointIndex)},${yScale(maxDataPoint)})`
-      );
-
-    return { minPoint, maxPoint, minMaxPointG };
-  };
-
-  const drawFocusGroup = (host) => {
-    const focus = host
-      .append("g")
-      .attr("class", "focus")
-      .attr("clip-path", "url(#clip)")
-      .attr("display", "none");
-
-    const focusLine = focus
-      .append("line")
-      .attr("y1", 0)
-      .attr("y2", height)
-      .attr("class", "focusLine");
-
-    const focusPoint = focus
-      .append("circle")
-      .attr("r", 4)
-      .attr("class", "focusPoint");
-
-    return { focus, focusLine, focusPoint };
-  };
-
   const drawChart = () => {
-    // draw a canvas
     const canvas = d3.select(svgRef.current);
 
+    // Clear canvas
     canvas.selectAll("*").remove();
 
-    const chartG = canvas
+    // Add top level group
+    const chartGroup = canvas
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    drawClipPath(chartG);
+    // Define scales and axes
+    const xScale = getXScale(data, width);
+    const yScale = getYScale({ data, height, isMagnified });
 
-    const { xScale, yScale } = scalesFnGenerator();
-    let newXScale = null;
-    let newYScale = null;
+    let updatedXScale = null;
+    let updatedYScale = null;
 
-    // draw axis
-    const { xAxis, yAxis } = axesFnGenerator(xScale, yScale);
-    const { xAxisGroup, yAxisGroup } = drawAxes(chartG, xAxis, yAxis);
-
-    // draw grid
-    drawGrids({ host: chartG, xScale, yScale });
-
-    // draw line
-    const lineDrawer = d3
-      .line()
-      .x((value, i) => xScale(i))
-      .y(yScale);
-
-    const line = chartG
-      .append("g")
-      .attr("clip-path", "url(#clip)")
-      .append("path")
-      .attr("class", "line")
-      .attr("d", lineDrawer(data));
-
-    // draw min and max point
-    const { minPoint, maxPoint, minMaxPointG } = drawMinMaxPoint(
-      chartG,
+    const { xAxis, yAxis } = axesFnGenerator({
       xScale,
-      yScale
+      yScale,
+      width,
+      height,
+      minTickSpace,
+    });
+
+    /* -------------- Draw chart elements -------------- */
+
+    const { xAxisGroup, yAxisGroup } = drawAxes({
+      container: chartGroup,
+      xAxis,
+      yAxis,
+      height,
+    });
+
+    drawGrids({
+      container: chartGroup,
+      xScale,
+      yScale,
+      width,
+      height,
+    });
+
+    const line = drawLine({ data, container: chartGroup, xScale, yScale });
+
+    drawClipPath({
+      container: chartGroup,
+      width,
+      height,
+    });
+
+    const overlay = drawOverlay({
+      container: chartGroup,
+      width,
+      height,
+      minTickSpace,
+    });
+
+    const { minPoint, maxPoint, minMaxGroup } = drawHighlightPoints({
+      container: chartGroup,
+      data,
+      xScale,
+      yScale,
+    });
+
+    const { focus, focusPoint, focusLine } = drawFocusElements(
+      chartGroup,
+      height
     );
 
-    // draw overlay for zoom and tooltip
-    const overlay = drawOverlay(chartG);
+    const tooltip = drawTooltip(chartGroup);
 
-    // draw tooltip
-    const tooltip = chartG
-      .append("g")
-      .append("text")
-      .attr("class", "tooltip")
-      .attr("display", "none");
+    // Attach mouse events
+    overlay.on("mousemove", (event) =>
+      onMouseMove({
+        event,
+        data,
+        scales: {
+          xScale: updatedXScale || xScale,
+          yScale: updatedYScale || yScale,
+        },
+        elements: {
+          focus,
+          focusLine,
+          focusPoint,
+          minMaxGroup,
+          minPoint,
+          maxPoint,
+          tooltip,
+        },
+        dimensions: { width, margin },
+      })
+    );
 
-    // draw focus line and point
-    const { focus, focusPoint, focusLine } = drawFocusGroup(chartG);
+    // Zoom functionality
+    const zoom = d3
+      .zoom()
+      .scaleExtent([1, 1.2])
+      .on("zoom", (event) => {
+        const { zoomedXScale, zoomedYScale } = onZoom({
+          event,
+          axes: { xAxis, yAxis, xAxisGroup, yAxisGroup },
+          scales: { xScale, yScale },
+          elements: {
+            focus,
+            tooltip,
+            minMaxGroup,
+            line,
+          },
+        });
 
-    const onMousemove = (event) => {
-      const currentXScale = newXScale || xScale;
-      const currentYScale = newYScale || yScale;
-
-      const index = Math.round(xScale.invert(event.clientX - margin.left));
-      const value = data[index];
-
-      if (!value) {
-        return;
-      }
-
-      focus.attr("display", "block");
-      focusLine.attr("transform", `translate(${currentXScale(index)},0)`);
-      focusPoint.attr(
-        "transform",
-        `translate(${currentXScale(index)},${currentYScale(value)})`
-      );
-
-      minMaxPointG.attr("display", "block");
-      minPoint.attr(
-        "transform",
-        `translate(${currentXScale(minDataPointIndex)},${currentYScale(
-          minDataPoint
-        )})`
-      );
-      maxPoint.attr(
-        "transform",
-        `translate(${currentXScale(maxDataPointIndex)},${currentYScale(
-          maxDataPoint
-        )})`
-      );
-
-      tooltip.attr("display", "block").text(`(${index}, ${value})`);
-
-      // re-position tooltip text to the left when near the end
-      if (width - event.clientX - margin.left < 80) {
-        tooltip.style(
-          "transform",
-          `translate(${currentXScale(index) - 200}px,${
-            currentYScale(value) - 30
-          }px)`
-        );
-      } else {
-        tooltip.style(
-          "transform",
-          `translate(${currentXScale(index) + 15}px,${
-            currentYScale(value) - 30
-          }px)`
-        );
-      }
-    };
-
-    overlay.on("mousemove", onMousemove);
-
-    // zoom functionality
-    const onZoom = (event) => {
-      // hide focus and tooltip
-      focus.attr("display", "none");
-      tooltip.attr("display", "none");
-      minMaxPointG.attr("display", "none");
-
-      newXScale = event.transform.rescaleX(xScale);
-      newYScale = event.transform.rescaleY(yScale);
-
-      xAxisGroup.call(xAxis.scale(newXScale));
-      yAxisGroup.call(yAxis.scale(newYScale));
-
-      // update line
-      line.attr("transform", event.transform);
-    };
-
-    const zoom = d3.zoom().scaleExtent([1, 1.2]).on("zoom", onZoom);
+        // update new scales after zoom
+        updatedXScale = zoomedXScale;
+        updatedYScale = zoomedYScale;
+      });
 
     overlay.call(zoom);
   };
 
-  useEffect(() => drawChart(), [data, isMagnified]);
+  useEffect(() => {
+    drawChart();
+  }, [data, isMagnified]);
 
   return (
     <Card>
@@ -339,21 +202,7 @@ const LineChart = ({
             height={svgHeight}
           />
         </div>
-        <div className="analysis-text">
-          <p>
-            <span className="label">Min data point</span>: {minDataPoint}
-          </p>
-          <p>
-            <span className="label">Max data point</span>: {maxDataPoint}
-          </p>
-          <p>
-            <span className="label">Average data point</span>: {avgDataPoint}
-          </p>
-          <p>
-            <span className="label">Standard deviation</span>:{" "}
-            {standardDeviation}
-          </p>
-        </div>
+        <Stats data={data} />
       </div>
     </Card>
   );
